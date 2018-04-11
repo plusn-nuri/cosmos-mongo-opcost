@@ -1,0 +1,19 @@
+{
+  "name": "cosmos-mongoopcost",
+  "version": "1.0.0",
+  "description": "A cost estimator for MongoDB queries against CosmosDB",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "CosmosDB",
+    "MongoDB",
+    "Cost"
+  ],
+  "author": "nuri",
+  "license": "ISC",
+  "dependencies": {
+    "mongodb": "^3.0.5"
+  }
+}

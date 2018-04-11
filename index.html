@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Cost Of Query</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.2/css/bulma.min.css">
+    <script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
+</head>
+
+<body>
+    <div>
+        <section class="section">
+            <section class="container">
+                <h1 class="title">
+                    CosmosDB Cost Estimator
+                </h1>
+                <p class="subtitle">
+                    Helping estimate the cost of
+                    <strong>CosmosDB</strong> operations for applications using the
+                    <strong>MongoDB</strong> driver.</p>
+            </section>
+        </section>
+
+        <section id="app" class="section">
+            <div class="container">
+                <div class="notification is-danger" v-if="lastError" v-on:click="clearResults">
+                    <button class="delete"></button>
+                    {{lastError}}
+                </div>
+                <div clas="section">
+                    <p class="heading">Progress</p>
+                    <progress class="progress" v-bind:class="{'is-danger': lastError, 'is-success': (!lastError) }" v-bind:value="progress" max="100">{{progress}}%</progress>
+                    <br>
+                </div>
+
+                <div class="columns">
+                    <div class="column is-one-quarter">
+
+                        <div class="box">
+                            <p class="heading">Collection Name
+                                <span v-if="!collectionName" class="icon has-text-danger">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </span>
+                            </p>
+                            <input v-model="collectionName" placeholder="Enter Collection Name" />
+                        </div>
+
+                        <div class="box">
+
+                            <p class="heading">Command Type</p>
+                            <div class="control">
+                                <label class="radio">
+                                    <input value="aggregate" id="cmd1" v-model="commandName" type="radio" name="opType" /> aggregate
+                                </label>
+                                <label class="radio">
+                                    <input value="find" id="cmd2" v-model="commandName" type="radio" name="opType" /> find
+                                </label>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="column">
+
+                        <div class="box">
+                            <p class="heading">Expression</p>
+                            <textarea class="textarea" rows="3" type="text" v-model="expression" placeholder="[ { &quot;$match&quot;: {&quot;_id&quot;: 1} } ]"></textarea>
+                        </div>
+                        <p>
+                            <button class="button is-primary" v-bind:disabled="lastError" v-on:click="checkCost">Check</button>
+                        </p>
+                        <br/>
+                        <div clas="section" v-if="inspectionResult">
+                            <p class="heading">Inspection Results</p>
+                            <nav class="level">
+                                <div class="level-item has-text-centered">
+                                    <div>
+                                        <p class="heading">Command Name</p>
+                                        <p class="title">{{inspectionResult.cost.CommandName}}</p>
+                                    </div>
+                                </div>
+                                <div class="level-item has-text-centered">
+                                    <div>
+                                        <p class="heading">Request Charge (DTU)</p>
+                                        <p class="title">{{inspectionResult.cost.RequestCharge}}</p>
+                                    </div>
+                                </div>
+                                <div class="level-item has-text-centered">
+                                    <div>
+                                        <p class="heading">Request Duration (ms)</p>
+                                        <p class="title">{{inspectionResult.cost.RequestDurationInMilliSeconds}}</p>
+                                    </div>
+                                </div>
+                            </nav>
+                            <br/>
+                        </div>
+
+                        <div class="box" v-if="inspectionResult">
+                            <p class="heading">Documents</p>
+                            <pre>{{ JSON.stringify(inspectionResult.results,null,2)}}</pre>
+                        </div>
+                    </div>
+
+                </div>
+
+
+            </div>
+        </section>
+    </div>
+    <script>
+
+        var app = new Vue({
+            el: '#app',
+            data: {
+                commandName: 'aggregate',
+                expression: '[{"$match":{"_id":1}}]',
+                lastError: null,
+                progress: 0,
+                inspectionResult: null,
+                collectionName: ''
+            },
+            methods: {
+                clearResults: function () {
+                    this.progress = 0;
+                    this.lastError = null;
+                    this.inspectionResult = null;
+                },
+                checkCost: function () {
+                    this.clearResults();
+
+                    try {
+                        const parsedExpression = JSON.parse(this.expression);
+                        this.progress = 33;
+                        const that = this;
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('POST', '/api/cost');
+                        xhr.setRequestHeader('Content-Type', 'application/json');
+                        xhr.onreadystatechange = function () {
+                            if (xhr.readyState == 4) {
+                                that.progress = 100;
+
+                                if (xhr.status == 200) {
+                                    that.inspectionResult = JSON.parse(xhr.responseText);
+                                }
+
+                                if (xhr.status == 500) {
+                                    const err = JSON.parse(xhr.responseText);
+                                    that.lastError = `${err.name}: ${err.message}`;
+                                }
+                            }
+                        }
+                        xhr.send(JSON.stringify({
+                            collectionName: this.collectionName,
+                            commandName: this.commandName,
+                            expression: parsedExpression
+                        }));
+                        this.progress = 66;
+
+                    } catch (error) {
+                        this.lastError = error.message;
+                    }
+                }
+            }
+
+        })
+    </script>
+
+</body>
+
+</html>
