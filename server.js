@@ -4,10 +4,16 @@ const path = require('path');
 const fs = require('fs');
 
 class Server {
-  constructor(costChecker, port =80, uiPage = 'index.html', ) {
+  constructor(costChecker, port = 80, uiPage = 'index.html', ) {
     this.port = port;
     this.uiPage = uiPage;
     this.costChecker = costChecker;
+  }
+
+  static sendError(response, error) {
+    response.setHeader('Content-Type', 'application/json');
+    response.statusCode = 500;
+    response.end(JSON.stringify(error))
   }
 
   start() {
@@ -25,19 +31,20 @@ class Server {
         if (pathName === '/' || pathName === "/index") {
           this.serveUiPage(res, this.uiPage);
         }
+        else if (pathName === '/api/collection') {
+          this.costChecker.listCollections().then(names => {
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify(names));
+          }).catch(e => Server.sendError(res, e));
+        }
         else if (pathName === '/api/cost') {
-          const {collectionName, commandName, expression} = JSON.parse(body);
+          const { collectionName, commandName, expression } = JSON.parse(body);
           this.costChecker
             .check(collectionName, expression, commandName)
             .then(r => {
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify(r))
-            }).catch(e => {
-              res.setHeader('Content-Type', 'application/json');
-              res.statusCode = 500;
-              res.end(JSON.stringify(e))
-
-            });
+            }).catch(e => Server.sendError(res, e));
         }
         else {
           res.end("Nothing");

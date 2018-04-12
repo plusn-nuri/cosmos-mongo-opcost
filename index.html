@@ -13,6 +13,7 @@
 
 <body>
     <div>
+
         <section class="section">
             <section class="container">
                 <h1 class="title">
@@ -26,6 +27,7 @@
         </section>
 
         <section id="app" class="section">
+
             <div class="container">
                 <div class="notification is-danger" v-if="lastError" v-on:click="clearResults">
                     <button class="delete"></button>
@@ -46,7 +48,14 @@
                                     <i class="fas fa-exclamation-triangle"></i>
                                 </span>
                             </p>
-                            <input v-model="collectionName" placeholder="Enter Collection Name" />
+                            <!-- <input v-model="collectionName" placeholder="Enter Collection Name" /> -->
+
+                            <select v-model="collectionName">
+                                <option v-for="item in collectionNames" v-bind:value="item">
+                                    {{ item }}
+                                </option>
+                            </select>
+
                         </div>
 
                         <div class="box">
@@ -75,7 +84,7 @@
                         </p>
                         <br/>
                         <div clas="section" v-if="inspectionResult">
-                    
+
                             <nav class="level">
                                 <div class="level-item has-text-centered">
                                     <div>
@@ -116,12 +125,23 @@
         var app = new Vue({
             el: '#app',
             data: {
+                collectionNames: [],
                 commandName: 'aggregate',
                 expression: '[{"$match":{"_id":1}}]',
                 lastError: null,
                 progress: 0,
                 inspectionResult: null,
                 collectionName: ''
+            },
+            mounted: function () {
+                const that = this;
+                const xhr = new XMLHttpRequest();
+                xhr.addEventListener("load", () => {
+                    const names = JSON.parse(xhr.responseText).map(e => e.name);
+                    that.collectionNames = names;
+                });
+                xhr.open("GET", "/api/collection");
+                xhr.send();
             },
             methods: {
                 clearResults: function () {

@@ -23,6 +23,13 @@ class CostChecker {
         return { results: results, cost: cost };
     }
 
+    async listCollections(){
+        const client = await MongoClient.connect(this.connection);
+        const db = client.db(this.dbName);
+        const crs = await db.listCollections();
+        return await crs.toArray();        
+    }
+
     static validate(expression, commandName) {
         if (!(commandName === "aggregate" || commandName == "find")) {
             throw ValidationException(`Command name ${commandName} is not one of 'aggregate' or 'find'.`);
